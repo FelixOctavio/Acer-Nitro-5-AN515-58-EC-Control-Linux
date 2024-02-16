@@ -7,48 +7,42 @@ if [ $# -le 0 ]; then
 	echo "DBG: [r]ead from ec"
 	echo "DBG: [e]nergy data from intel_rapl"
 	echo "DBG: [n]vidia-powerd restart"
+	W=0
 	exit
 fi
 
-echo on | sudo tee /sys/module/msr/parameters/allow_writes &>/dev/null
+echo on | tee /sys/module/msr/parameters/allow_writes &>/dev/null
 
-if [[ "$(lsmod | grep ec_sys | cut -f1 -d' ' | tr -d '\n' | wc -c)" -ne 6 ]]; then
-	sudo rmmod ec_sys
-	if [ -f ~/ec_sys.ko ]; then
-		if ! sudo insmod ~/ec_sys.ko write_support=1; then
-			sudo dmesg | tail
-			exit
-		fi
-	else
-		sudo modprobe ec_sys write_support=1
-	fi
-fi
+# Reload ec_sys with write_support
+ modprobe -r ec_sys
+ modprobe ec_sys write_support=1
 
-EC=/sys/kernel/debug/ec/ec0/io
+EC=/sys/kernel/debug/ec/ec0/io # EC Location
+W=1
 
 if [[ $* =~ "r" ]]; then
-	if [[ $(sudo ls $EC 2>/dev/null) ]]; then
-		sudo xxd -g1 $EC
+	if [[ $( ls $EC 2>/dev/null) ]]; then
+		 xxd -g1 $EC
 	fi
 fi
 
 if [[ $* =~ "e" ]]; then
-	find /sys/devices/virtual/powercap -type f -iname "energy_uj" -print -exec bash -c "sudo cat {}" \;
+	find /sys/devices/virtual/powercap -type f -iname "energy_uj" -print -exec bash -c " cat {}" \;
 fi
 
 function ecw() {
 	# shellcheck disable=SC2059
-	printf "$2" | sudo dd of=$EC bs=1 seek="$1" count=1 conv=notrunc &>/dev/null
+	echo -n -e "$2" |  dd of=$EC bs=1 seek="$1" count=1 conv=notrunc &>/dev/null
 }
 
 function set_power_limits() {
 	MSR=/sys/devices/virtual/powercap/intel-rapl/intel-rapl:0
 	MCH=/sys/devices/virtual/powercap/intel-rapl-mmio/intel-rapl-mmio:0
 	for N in "$MSR" "$MCH"; do
-		echo "${1}000000" | sudo tee "$N/constraint_0_power_limit_uw" &>/dev/null
-		echo "${2}000000" | sudo tee "$N/constraint_1_power_limit_uw" &>/dev/null
-		echo "128000000"  | sudo tee "$N/constraint_0_time_window_us" &>/dev/null
-		echo "128000000"  | sudo tee "$N/constraint_1_time_window_us" &>/dev/null
+		echo "${1}000000" | tee "$N/constraint_0_power_limit_uw" &>/dev/null
+		echo "${2}000000" | tee "$N/constraint_1_power_limit_uw" &>/dev/null
+		echo "128000000"  | tee "$N/constraint_0_time_window_us" &>/dev/null
+		echo "128000000"  | tee "$N/constraint_1_time_window_us" &>/dev/null
 		[[ "$N" == "$MSR" ]] && NODE=MSR || NODE=MCH
 		echo "[$NODE] PL1 [$(cat "$N/constraint_0_power_limit_uw") $(cat "$N/constraint_0_time_window_us")] PL2 [$(cat "$N/constraint_1_power_limit_uw") $(cat "$N/constraint_1_time_window_us")]"
 	done
@@ -56,7 +50,7 @@ function set_power_limits() {
 
 ecw $((0x03)) '\x11' # Write-Enable
 
-if [[ $(sudo ls $EC 2>/dev/null) ]]; then
+if [[ $( ls $EC 2>/dev/null) ]]; then
 	if [[ $* =~ "q" ]]; then
 		echo "PWR - Quiet"
 		ecw $((0x2c)) '\x00' # 00 01 04 PWR: quiet default perf
@@ -77,7 +71,7 @@ if [[ $(sudo ls $EC 2>/dev/null) ]]; then
 	fi
 	if [[ $* =~ "n" ]]; then
 		echo "PWR - nvidia-powerd restart"
-		sudo systemctl restart nvidia-powerd
+		 systemctl restart nvidia-powerd
 	fi
 	if [[ $* =~ "a" ]]; then
 		echo "FAN - Auto"
@@ -86,14 +80,16 @@ if [[ $(sudo ls $EC 2>/dev/null) ]]; then
 	fi
 	if [[ $* =~ "c" ]]; then
 		if [ -z "$2" ]; then
-			echo "Specify FAN Percentage as Second Arg"
+			echo "Specify FAN Percentage as Second arg (CPU FAN) and Third arg (GPU FAN)"
 		else
-			PCT="\x$(printf %x "$2")"
-			echo "FAN - Custom ($2%)"
+			CPCT="\x$(printf %x "$2")"
+			GPCT="\x$(printf %x "$3")"
+			echo "CPU FAN - Custom ($2%)"
+			echo "GPU FAN - Custom ($3%)"
 			ecw $((0x21)) '\x30' # 10 20 30 GPUF: auto max cust
 			ecw $((0x22)) '\x0c' # 04 08 0c CPUF: auto max cust
-			ecw $((0x37)) "$PCT" # 32 64 CPUF PCT: 0-100%
-			ecw $((0x3a)) "$PCT" # 32 64 GPUF PCT: 0-100%
+			ecw $((0x37)) "$CPCT" # 32 64 CPUF PCT: 0-100%
+			ecw $((0x3a)) "$GPCT" # 32 64 GPUF PCT: 0-100%
 		fi
 	fi
 	if [[ $* =~ "m" ]]; then
@@ -101,4 +97,8 @@ if [[ $(sudo ls $EC 2>/dev/null) ]]; then
 		ecw $((0x21)) '\x20' # 10 20 30 GPUF: auto max cust
 		ecw $((0x22)) '\x08' # 04 08 0c CPUF: auto max cust
 	fi
+fi
+
+if [[ $W =~ "1"  && -f /sys/bus/wmi/drivers/acer-wmi-battery/health_mode ]]; then
+	echo 1 | tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode &>/dev/null
 fi
