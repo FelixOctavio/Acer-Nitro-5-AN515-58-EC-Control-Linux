@@ -14,20 +14,6 @@ Kernel Commandline (/etc/default/grub)
 ec_sys.write_support=1 msr.allow_writes=on
 ```
 
-The `ec_sys.ko` module to be present at `~`
-
-Find it on your current kernel with
-
-```
-find /lib/modules -type f -iname "*ec_sys.ko*"
-```
-
-Copy the .ko file over to `~` as `ec_sys.ko`
-
-```
-find /lib/modules -type f -iname "ec_sys.ko" -exec cp {} ~ \;
-```
-
 # Usage
 
 To show available switches
@@ -41,7 +27,7 @@ Available Switches
 ```
 PWR:  [q]uiet [d]efault [p]erformance
 FAN:  [a]uto  [c]ustom  [m]ax
-DBG: e[x]tract ec
+DBG:  [r]ead from ec
 ```
 
 Example: Default Power with Auto Fan
@@ -56,10 +42,22 @@ Example: Performance Power with Max Fan
 sudo bash nitrosense pm
 ```
 
-Example: Performance Power with Custom Fan at 50%
+Example: Performance Power with Custom Fan ( CPU 50% and GPU 75% )
 
 ```
-sudo bash nitrosense pc 50
+sudo bash nitrosense pc 50 75
+```
+
+Example: Limit Battery Charging to 80%
+
+```
+sudo bash nitrosense b 1
+```
+
+Example: Limit Battery Charging to 100%
+
+```
+sudo bash nitrosense b 0
 ```
 
 # Notes
@@ -71,5 +69,5 @@ Along with PL1 and PL2 Timing of 1 minute
 To dump current EC registers
 
 ```
-sudo bash nitrosense x
+sudo bash nitrosense e
 ```
