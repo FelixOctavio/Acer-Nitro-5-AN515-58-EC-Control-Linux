@@ -66,6 +66,20 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 			ecw $((0x03)) "$BAT" # 11 51: 80% 100% limit charge
 		fi
 	fi
+	if [[ $* =~ "l" ]]; then
+		if [ -z "$2" ]; then
+			echo "Specify Charging Limit Mode as Second arg (0 = Off, 1 = On)"
+		else
+			if [[ $2 =~ "0" ]]; then
+				echo "Keyboard Backlight - OFF"
+				KBD="\x00"
+			elif [[ $2 =~ "1" ]]; then
+				echo "Keyboard Backlight - ON"
+				KBD="\x64"
+			fi
+			ecw "25" "$KBD" # 00 64: 0% - 100% Keyboard backlight
+		fi
+	fi
 	if [[ $* =~ "q" ]]; then
 		echo "PWR - Quiet"
 		ecw $((0x2c)) '\x00' # 00 01 04 PWR: quiet default perf
