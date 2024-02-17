@@ -1,4 +1,4 @@
-# Acer-Nitro-5-AN515-58-EC-Control-Linux
+# Acer Nitro 5 AN515 58 EC Control Linux
 
 Implementation of basic EC registers that NitroSense Modifies, as a Bash Script
 
