@@ -101,7 +101,7 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 				echo "Keyboard Backlight - ON (100%)"
 				KBD="\x64"
 			fi
-			ecw "25" "$KBD" # 00 64: 0% - 100% Keyboard backlight (step 25%)
+			ecw "$((0x19))" "$KBD" # 00 64: 0% - 100% Keyboard backlight (step 25%)
 		fi
 	fi
 	if [[ $* =~ "q" ]]; then
@@ -150,7 +150,7 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 		ecw $((0x21)) '\x20' # 10 20 30 GPUF: auto max cust
 		ecw $((0x22)) '\x08' # 04 08 0c CPUF: auto max cust
 	fi
-	if [[ $* =~ "w" ]]; then
+	if [[ $* =~ "w" ]]; then # Windows and Menu Key Lock (On Gnome, detected as Play / Pause Media Button)
 		if [[ $2 =~ "0" ]]; then
 			echo "Windows and Menu Key Lock - OFF"
 			WML="\x01"
@@ -158,28 +158,28 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 			echo "Windows and Menu Key Lock - ON"
 			WML="\x81"
 		fi
-		ecw 48 "$WML"
+		ecw $((0x30)) "$WML"
 	fi
 	if [[ $* =~ "k" ]]; then # Keyboard Backlight Mode
-	# 24 default to 00, 01 - 09 speed incremental
-	# 27 default to 00, 01 = to left, 02 = to right
+	# 24 (0x18) default to 00, 01 - 09 speed incremental
+	# 27 (0x1b) default to 00, 01 = to left, 02 = to right
 	# Only Wave and Neon Works (With speed defined. Can control direction)
 
 		if [[ $2 =~ "0" ]]; then # Static Mode
 			echo "Keyboard Backlight Mode: Static"
-			ecw 23 '\x01' # Static Mode
-			ecw 24 '\x00' # Static Mode
-			ecw 27 '\x00' # Static Mode
+			ecw $((0x17)) '\x01' # Static Mode
+			ecw $((0x18)) '\x00' # Static Mode
+			ecw $((0x1b)) '\x00' # Static Mode
 		elif [[ $2 =~ "1" ]]; then # Breathing Mode
 			echo "Not working right now"
 		elif [[ $2 =~ "2" ]]; then # Wave Mode
 			echo "Keyboard Backlight Mode: Wave"
-			ecw 23 '\x02' # Wave Mode
-			ecw 24 '\x01' # Speed 1
+			ecw $((0x17)) '\x02' # Wave Mode
+			ecw $((0x18)) '\x01' # Speed 1
 		elif [[ $2 =~ "3" ]]; then # Neon Mode
 			echo "Keyboard Backlight Mode: Neon"
-			ecw 23 '\x03' # Neon Mode
-			ecw 24 '\x01' # Speed 1
+			ecw $((0x17)) '\x03' # Neon Mode
+			ecw $((0x18)) '\x01' # Speed 1
 		elif [[ $2 =~ "4" ]]; then # Zoom Mode
 			echo "Not working right now"
 		fi
@@ -187,23 +187,23 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 	if [[ $* =~ "o" ]]; then
 		echo "Test Keyboard Backlight Color"
 		# Zone 1
-		ecw 60 '\xff' # Set Color to White
-		ecw 61 '\xff' # Set Color to White
-		ecw 62 '\xff' # Set Color to White
+		ecw $((0x3c)) '\xff' # Set Color to White
+		ecw $((0x3d)) '\xff' # Set Color to White
+		ecw $((0x3e)) '\xff' # Set Color to White
 		
 		# Zone 2
-		ecw 63 '\xff' # Set Color to White
-		ecw 64 '\xff' # Set Color to White
-		ecw 65 '\xff' # Set Color to White
+		ecw $((0x3f)) '\xff' # Set Color to White
+		ecw $((0x40)) '\xff' # Set Color to White
+		ecw $((0x41)) '\xff' # Set Color to White
 
 		# Zone 3
-		ecw 66 '\xff' # Set Color to White
-		ecw 67 '\xff' # Set Color to White
-		ecw 68 '\xff' # Set Color to White
+		ecw $((0x42)) '\xff' # Set Color to White
+		ecw $((0x42)) '\xff' # Set Color to White
+		ecw $((0x44)) '\xff' # Set Color to White
 
 		# Zone 4
-		ecw 69 '\xff' # Set Color to White
-		ecw 70 '\xff' # Set Color to White
-		ecw 71 '\xff' # Set Color to White
+		ecw $((0x45)) '\xff' # Set Color to White
+		ecw $((0x46)) '\xff' # Set Color to White
+		ecw $((0x47)) '\xff' # Set Color to White
 	fi
 fi
