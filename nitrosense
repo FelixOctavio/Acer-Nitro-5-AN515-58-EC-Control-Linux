@@ -18,12 +18,14 @@ if [ $# -le 0 ]; then
 	echo "keyboard backlight c[o]lor:"
 	echo "	- [0] - All zone"
 	echo "	- [1] - Per zone"
+	echo "	- [2] - Dynamic color"
 	echo "[k]eyboard backlight mode:"
 	echo "	- [0] Static"
-	echo "	- [1] Breathing (Not Working)"
+	echo "	- [1] Breathing (Dynamic color need to be set)"
 	echo "	- [2] Wave"
 	echo "	- [3] Neon"
-	echo "	- [4] Zoom (Not Working)"
+	echo "	- [4] Shifting (Dynamic color need to be set)"
+	echo "	- [5] Zoom (Dynamic color need to be set)"
 	echo "[w]indows and menu key lock:"
 	echo "	- [0] - off"
 	echo "	- [1] - on"
@@ -69,8 +71,9 @@ function set_power_limits() {
 	done
 }
 
-ecw $((0x03)) '\x51' # Write-Enable? + Set Battery charge to 80% (trigger write enable)
-# ecw $((0x03)) '\x11' # Write-Enable? + Set Battery charge to 100%
+# Sometimes, EC Cannot be written. To trigger write mode, use this
+ecw $((0x03)) '\x51' # Set Battery charge to 80% (trigger write enable)
+# ecw $((0x03)) '\x11' # Set Battery charge to 100%
 
 if [[ $( ls $EC 2>/dev/null) ]]; then
 	if [[ $* =~ "b" ]]; then
@@ -173,18 +176,31 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 
 		if [[ $2 =~ "0" ]]; then # Static Mode
 			echo "Keyboard Backlight Mode: Static"
-			ecw $((0x17)) '\x01' # Static Mode
-			ecw $((0x18)) '\x00' # Static Mode
-			ecw $((0x1b)) '\x00' # Static Mode
-		elif [[ $2 =~ "1" ]]; then # Breathing Mode
-			echo "Not working right now"echo "All Zone Keyboard Backlight Color"
+			ecw $((0x17)) '\x00' # Static Mode
+			ecw $((0x18)) '\x00' # No Speed (Static)
+			ecw $((0x1b)) '\x00' # No Direction (Static)
+		elif [[ $2 =~ "1" ]]; then # Breathing Mode (Dynamic Keyboard Color need to be set)
+			echo "Keyboard Backlight Mode: Breathing"
+			ecw $((0x17)) '\x01' # Breathing Mode
+			ecw $((0x18)) '\x01' # Speed 1
+		elif [[ $2 =~ "2" ]]; then # Wave Mode
+			echo "Keyboard Backlight Mode: Wave"
+			ecw $((0x17)) '\x02' # Wave Mode
 			ecw $((0x18)) '\x01' # Speed 1
 		elif [[ $2 =~ "3" ]]; then # Neon Mode
 			echo "Keyboard Backlight Mode: Neon"
 			ecw $((0x17)) '\x03' # Neon Mode
 			ecw $((0x18)) '\x01' # Speed 1
-		elif [[ $2 =~ "4" ]]; then # Zoom Mode
-			echo "Not working right now"
+			ecw $((0x1b)) '\x01' # Direction to Right?
+		elif [[ $2 =~ "4" ]]; then # Shifting Mode (Dynamic Keyboard Color need to be set)
+			echo "Keyboard Backlight Mode: Shifting"
+			ecw $((0x17)) '\x04' # Shifting Mode
+			ecw $((0x18)) '\x01' # Speed 1
+			ecw $((0x1b)) '\x01' # Direction to Right
+		elif [[ $2 =~ "5" ]]; then # Zoom Mode (Dynamic Keyboard Color need to be set)
+			echo "Keyboard Backlight Mode: Zoom" 
+			ecw $((0x17)) '\x05' # Zoom Mode
+			ecw $((0x18)) '\x01' # Speed 1
 		fi
 	fi
 	if [[ $* =~ "o" ]]; then
@@ -240,6 +256,21 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 				C4_2="$(echo "$6" | cut -b 3-4)"
 				C4_3="$(echo "$6" | cut -b 5-6)"
 			fi
+		elif [[ $2 =~ "2" ]]; then # Dynamic Keyboard Backlight Color
+			if [ -z "$3" ]; then
+				echo "Specify color hex code for Dynamic Keyboard Mode"
+			else
+				echo "Dynamic Keyboard Backlight Color Set"
+
+				C1_1="$(echo "$3" | cut -b 1-2)"
+				C1_2="$(echo "$3" | cut -b 3-4)"
+				C1_3="$(echo "$3" | cut -b 5-6)"
+
+				ecw $((0x1c)) "\x$C1_1"
+				ecw $((0x1d)) "\x$C1_2"
+				ecw $((0x1e)) "\x$C1_3"
+			fi
+			exit
 		fi
 
 		# Zone 1
