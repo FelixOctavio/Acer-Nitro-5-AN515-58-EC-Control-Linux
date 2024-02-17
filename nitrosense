@@ -15,6 +15,12 @@ if [ $# -le 0 ]; then
 	echo "	- [2] - 50%"
 	echo "	- [3] - 75%"
 	echo "	- [4] - 100%"
+	echo "[k]eyboard backlight mode:"
+	echo "	- [0] Static"
+	echo "	- [1] Breathing (Not Working)"
+	echo "	- [2] Wave"
+	echo "	- [3] Neon"
+	echo "	- [4] Zoom (Not Working)"
 	echo "[w]indows and menu key lock:"
 	echo "	- [0] - off"
 	echo "	- [1] - on"
@@ -28,7 +34,6 @@ echo on | tee /sys/module/msr/parameters/allow_writes &>/dev/null
  modprobe ec_sys write_support=1
 
 EC=/sys/kernel/debug/ec/ec0/io # EC Location
-W=1
 
 if [[ $* =~ "r" ]]; then
 	if [[ $( ls $EC 2>/dev/null) ]]; then
@@ -154,5 +159,27 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 			WML="\x81"
 		fi
 		ecw 48 "$WML"
+	fi
+	if [[ $* =~ "k" ]]; then # Keyboard Backlight Mode
+	# 24 default to 00, 01 - 09 speed incremental
+	# 27 default to 00, 01 = to left, 02 = to right
+	# Only Wave and Neon Works (With speed defined. Can control direction)
+
+		if [[ $2 =~ "0" ]]; then # Static Mode
+			echo "Keyboard Backlight Mode: Static"
+			ecw 23 '\x00' # Static Mode
+		elif [[ $2 =~ "1" ]]; then # Breathing Mode
+			echo "Not working right now"
+		elif [[ $2 =~ "2" ]]; then # Wave Mode
+			echo "Keyboard Backlight Mode: Wave"
+			ecw 23 '\x02' # Wave Mode
+			ecw 24 '\x01' # Speed 1
+		elif [[ $2 =~ "3" ]]; then # Neon Mode
+			echo "Keyboard Backlight Mode: Neon"
+			ecw 23 '\x03' # Neon Mode
+			ecw 24 '\x01' # Speed 1
+		elif [[ $2 =~ "4" ]]; then # Zoom Mode
+			echo "Not working right now"
+		fi
 	fi
 fi
