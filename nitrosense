@@ -68,16 +68,25 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 	fi
 	if [[ $* =~ "l" ]]; then
 		if [ -z "$2" ]; then
-			echo "Specify Charging Limit Mode as Second arg (0 = Off, 1 = On)"
+			echo "Specify Keyboard Backlight Level as Second arg (0 Off, 1, 2, 3, 4 On)"
 		else
 			if [[ $2 =~ "0" ]]; then
-				echo "Keyboard Backlight - OFF"
+				echo "Keyboard Backlight - OFF (0%)"
 				KBD="\x00"
 			elif [[ $2 =~ "1" ]]; then
-				echo "Keyboard Backlight - ON"
+				echo "Keyboard Backlight - ON (25%)"
+				KBD="\x19"
+			elif [[ $2 =~ "2" ]]; then
+				echo "Keyboard Backlight - ON (50%)"
+				KBD="\x32"
+			elif [[ $2 =~ "3" ]]; then
+				echo "Keyboard Backlight - ON (75%)"
+				KBD="\x4B"
+			elif [[ $2 =~ "4" ]]; then
+				echo "Keyboard Backlight - ON (100%)"
 				KBD="\x64"
 			fi
-			ecw "25" "$KBD" # 00 64: 0% - 100% Keyboard backlight
+			ecw "25" "$KBD" # 00 64: 0% - 100% Keyboard backlight (step 25%)
 		fi
 	fi
 	if [[ $* =~ "q" ]]; then
