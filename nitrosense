@@ -15,6 +15,9 @@ if [ $# -le 0 ]; then
 	echo "	- [2] - 50%"
 	echo "	- [3] - 75%"
 	echo "	- [4] - 100%"
+	echo "[w]indows and menu key lock:"
+	echo "	- [0] - off"
+	echo "	- [1] - on"
 	exit
 fi
 
@@ -141,5 +144,15 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 		echo "FAN - Max"
 		ecw $((0x21)) '\x20' # 10 20 30 GPUF: auto max cust
 		ecw $((0x22)) '\x08' # 04 08 0c CPUF: auto max cust
+	fi
+	if [[ $* =~ "w" ]]; then
+		if [[ $2 =~ "0" ]]; then
+			echo "Windows and Menu Key Lock - OFF"
+			WML="\x01"
+		elif [[ $2 =~ "1" ]]; then
+			echo "Windows and Menu Key Lock - ON"
+			WML="\x81"
+		fi
+		ecw 48 "$WML"
 	fi
 fi
