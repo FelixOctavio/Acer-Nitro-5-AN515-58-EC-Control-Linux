@@ -15,6 +15,9 @@ if [ $# -le 0 ]; then
 	echo "	- [2] - 50%"
 	echo "	- [3] - 75%"
 	echo "	- [4] - 100%"
+	echo "keyboard backlight c[o]lor:"
+	echo "	- [0] - All zone"
+	echo "	- [1] - Per zone"
 	echo "[k]eyboard backlight mode:"
 	echo "	- [0] Static"
 	echo "	- [1] Breathing (Not Working)"
@@ -22,6 +25,9 @@ if [ $# -le 0 ]; then
 	echo "	- [3] Neon"
 	echo "	- [4] Zoom (Not Working)"
 	echo "[w]indows and menu key lock:"
+	echo "	- [0] - off"
+	echo "	- [1] - on"
+	echo "Power-off [u]sb charging:"
 	echo "	- [0] - off"
 	echo "	- [1] - on"
 	exit
@@ -63,7 +69,7 @@ function set_power_limits() {
 	done
 }
 
-# ecw $((0x03)) '\x51' # Write-Enable? + Set Battery charge to 80%
+ecw $((0x03)) '\x51' # Write-Enable? + Set Battery charge to 80% (trigger write enable)
 # ecw $((0x03)) '\x11' # Write-Enable? + Set Battery charge to 100%
 
 if [[ $( ls $EC 2>/dev/null) ]]; then
@@ -171,10 +177,7 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 			ecw $((0x18)) '\x00' # Static Mode
 			ecw $((0x1b)) '\x00' # Static Mode
 		elif [[ $2 =~ "1" ]]; then # Breathing Mode
-			echo "Not working right now"
-		elif [[ $2 =~ "2" ]]; then # Wave Mode
-			echo "Keyboard Backlight Mode: Wave"
-			ecw $((0x17)) '\x02' # Wave Mode
+			echo "Not working right now"echo "All Zone Keyboard Backlight Color"
 			ecw $((0x18)) '\x01' # Speed 1
 		elif [[ $2 =~ "3" ]]; then # Neon Mode
 			echo "Keyboard Backlight Mode: Neon"
@@ -185,25 +188,88 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 		fi
 	fi
 	if [[ $* =~ "o" ]]; then
-		echo "Test Keyboard Backlight Color"
+		if [[ $2 =~ "0" ]]; then # All Zone Keyboard Backlight Color
+			if [ -z "$3" ]; then
+				echo "Specify color hex code as Second arg"
+			else
+				echo "All Zone Keyboard Backlight Color Set"
+
+				# Zone 1
+				C1_1="$(echo "$3" | cut -b 1-2)"
+				C1_2="$(echo "$3" | cut -b 3-4)"
+				C1_3="$(echo "$3" | cut -b 5-6)"
+
+				# Zone 2
+				C2_1="$(echo "$3" | cut -b 1-2)"
+				C2_2="$(echo "$3" | cut -b 3-4)"
+				C2_3="$(echo "$3" | cut -b 5-6)"
+
+				# Zone 3
+				C3_1="$(echo "$3" | cut -b 1-2)"
+				C3_2="$(echo "$3" | cut -b 3-4)"
+				C3_3="$(echo "$3" | cut -b 5-6)"
+
+				# Zone 4
+				C4_1="$(echo "$3" | cut -b 1-2)"
+				C4_2="$(echo "$3" | cut -b 3-4)"
+				C4_3="$(echo "$3" | cut -b 5-6)"
+			fi
+		elif [[ $2 =~ "1" ]]; then # Per Zone Keyboard Backlight Color
+			if [ -z "$3" ] | [ -z "$4" ] | [ -z "$5" ] | [ -z "$6" ]; then
+				echo "Specify color hex code per zone (separated by whitespace)"
+			else
+				echo "Per Zone Keyboard Backlight Color Set"
+
+				# Zone 1
+				C1_1="$(echo "$3" | cut -b 1-2)"
+				C1_2="$(echo "$3" | cut -b 3-4)"
+				C1_3="$(echo "$3" | cut -b 5-6)"
+
+				# Zone 2
+				C2_1="$(echo "$4" | cut -b 1-2)"
+				C2_2="$(echo "$4" | cut -b 3-4)"
+				C2_3="$(echo "$4" | cut -b 5-6)"
+
+				# Zone 3
+				C3_1="$(echo "$5" | cut -b 1-2)"
+				C3_2="$(echo "$5" | cut -b 3-4)"
+				C3_3="$(echo "$5" | cut -b 5-6)"
+
+				# Zone 4
+				C4_1="$(echo "$6" | cut -b 1-2)"
+				C4_2="$(echo "$6" | cut -b 3-4)"
+				C4_3="$(echo "$6" | cut -b 5-6)"
+			fi
+		fi
+
 		# Zone 1
-		ecw $((0x3c)) '\xff' # Set Color to White
-		ecw $((0x3d)) '\xff' # Set Color to White
-		ecw $((0x3e)) '\xff' # Set Color to White
+		ecw $((0x3c)) "\x$C1_1"
+		ecw $((0x3d)) "\x$C1_2"
+		ecw $((0x3e)) "\x$C1_3"
 		
 		# Zone 2
-		ecw $((0x3f)) '\xff' # Set Color to White
-		ecw $((0x40)) '\xff' # Set Color to White
-		ecw $((0x41)) '\xff' # Set Color to White
+		ecw $((0x3f)) "\x$C2_1"
+		ecw $((0x40)) "\x$C2_2"
+		ecw $((0x41)) "\x$C2_3"
 
 		# Zone 3
-		ecw $((0x42)) '\xff' # Set Color to White
-		ecw $((0x42)) '\xff' # Set Color to White
-		ecw $((0x44)) '\xff' # Set Color to White
+		ecw $((0x42)) "\x$C3_1"
+		ecw $((0x43)) "\x$C3_2"
+		ecw $((0x44)) "\x$C3_3"
 
 		# Zone 4
-		ecw $((0x45)) '\xff' # Set Color to White
-		ecw $((0x46)) '\xff' # Set Color to White
-		ecw $((0x47)) '\xff' # Set Color to White
+		ecw $((0x45)) "\x$C4_1"
+		ecw $((0x46)) "\x$C4_2"
+		ecw $((0x47)) "\x$C4_3"
+	fi
+	if [[ $* =~ "u" ]]; then # Power-off USB Charging (Not tested)
+		if [[ $2 =~ "0" ]]; then
+			echo "Power-off USB Charging - OFF"
+			POU="\x1f"
+		elif [[ $2 =~ "1" ]]; then
+			echo "Power-off USB Charging - ON"
+			POU="\x0f"
+		fi
+		ecw $((0x8)) "$POU"
 	fi
 fi
