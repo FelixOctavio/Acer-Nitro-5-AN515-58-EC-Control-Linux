@@ -1,13 +1,20 @@
 #!/bin/bash
 
 if [ $# -le 0 ]; then
-	echo "ENA: [w]rite to ec"
 	echo "PWR: [q]uiet [d]efault [p]erformance"
 	echo "FAN: [a]uto  [c]ustom  [m]ax"
 	echo "DBG: [r]ead from ec"
 	echo "DBG: [e]nergy data from intel_rapl"
 	echo "DBG: [n]vidia-powerd restart"
-	W=0
+	echo "[b]attery charging limit:"
+	echo "	- [0] - off (100%)"
+	echo "	- [1] - on (80%)"
+	echo "keyboard backlight leve[l]:"
+	echo "	- [0] - 0%"
+	echo "	- [1] - 25%"
+	echo "	- [2] - 50%"
+	echo "	- [3] - 75%"
+	echo "	- [4] - 100%"
 	exit
 fi
 
@@ -136,7 +143,3 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 		ecw $((0x22)) '\x08' # 04 08 0c CPUF: auto max cust
 	fi
 fi
-
-#if [[ $W =~ "1"  && -f /sys/bus/wmi/drivers/acer-wmi-battery/health_mode ]]; then
-#	echo 1 | tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode &>/dev/null
-#fi
