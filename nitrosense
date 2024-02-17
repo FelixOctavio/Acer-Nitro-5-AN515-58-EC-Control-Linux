@@ -167,7 +167,9 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 
 		if [[ $2 =~ "0" ]]; then # Static Mode
 			echo "Keyboard Backlight Mode: Static"
-			ecw 23 '\x00' # Static Mode
+			ecw 23 '\x01' # Static Mode
+			ecw 24 '\x00' # Static Mode
+			ecw 27 '\x00' # Static Mode
 		elif [[ $2 =~ "1" ]]; then # Breathing Mode
 			echo "Not working right now"
 		elif [[ $2 =~ "2" ]]; then # Wave Mode
@@ -181,5 +183,27 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 		elif [[ $2 =~ "4" ]]; then # Zoom Mode
 			echo "Not working right now"
 		fi
+	fi
+	if [[ $* =~ "o" ]]; then
+		echo "Test Keyboard Backlight Color"
+		# Zone 1
+		ecw 60 '\xff' # Set Color to White
+		ecw 61 '\xff' # Set Color to White
+		ecw 62 '\xff' # Set Color to White
+		
+		# Zone 2
+		ecw 63 '\xff' # Set Color to White
+		ecw 64 '\xff' # Set Color to White
+		ecw 65 '\xff' # Set Color to White
+
+		# Zone 3
+		ecw 66 '\xff' # Set Color to White
+		ecw 67 '\xff' # Set Color to White
+		ecw 68 '\xff' # Set Color to White
+
+		# Zone 4
+		ecw 69 '\xff' # Set Color to White
+		ecw 70 '\xff' # Set Color to White
+		ecw 71 '\xff' # Set Color to White
 	fi
 fi
