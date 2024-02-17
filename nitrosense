@@ -32,6 +32,9 @@ if [ $# -le 0 ]; then
 	echo "Power-off [u]sb charging:"
 	echo "	- [0] - off"
 	echo "	- [1] - on"
+	echo "Keyboard backlight timeou[t]"
+	echo "	- [0] - off"
+	echo "	- [1] - on"
 	exit
 fi
 
@@ -43,7 +46,7 @@ echo on | tee /sys/module/msr/parameters/allow_writes &>/dev/null
 
 EC=/sys/kernel/debug/ec/ec0/io # EC Location
 
-if [[ $* =~ "r" ]]; then
+if [[ $* =~ "r" ]]; then # Read EC
 	if [[ $( ls $EC 2>/dev/null) ]]; then
 		 xxd -g1 $EC
 	fi
@@ -172,7 +175,6 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 	if [[ $* =~ "k" ]]; then # Keyboard Backlight Mode
 	# 24 (0x18) default to 00, 01 - 09 speed incremental
 	# 27 (0x1b) default to 00, 01 = to left, 02 = to right
-	# Only Wave and Neon Works (With speed defined. Can control direction)
 
 		if [[ $2 =~ "0" ]]; then # Static Mode
 			echo "Keyboard Backlight Mode: Static"
@@ -303,4 +305,39 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 		fi
 		ecw $((0x8)) "$POU"
 	fi
+	if [[ $* =~ "v" ]]; then # LCD Overdrive (Test)
+		if [[ $2 =~ "0" ]]; then
+			echo "LCD Overdrive - OFF"
+			LCD="\x10"
+		elif [[ $2 =~ "1" ]]; then
+			echo "LCD Overdrive - ON"
+			LCD="\x18"
+		fi
+		ecw $((0x8)) "$LCD"
+	fi
+	if [[ $* =~ "t" ]]; then # Keyboard Backlight Timeout
+		if [[ $2 =~ "0" ]]; then 
+			echo "Keyboard Backlight Timeout - OFF"
+			KBT="\x00"
+		elif [[ $2 =~ "1" ]]; then 
+			if [ -z "$3" ]; then
+					echo "Specify timeout in sec (Max 65 sec)"
+				elif [ $3 -le 65 ] && [ $3 -ge 1 ]; then
+					echo "Keyboard Backlight Timeout - $3 sec"
+					KBT="\x$(printf %x "$3")"
+
+					# 70 buggy (Infinite - Time out off)
+					# 66 Quick timeout .5 sec?
+					# 68 3 sec
+					# 69 3 sec
+					# -1 58 sec
+				else
+					echo "Timeout must be less than 66 and bigger than 0"
+			fi
+		fi
+		ecw $((0x06)) "$KBT"
+	fi
+	# if [[ $* =~ "z" ]]; then # Testing LCD Overdrive
+	# 	ecw $((0x21)) "\x10" 
+	# fi
 fi

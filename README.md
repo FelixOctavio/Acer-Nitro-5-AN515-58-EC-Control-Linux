@@ -14,7 +14,13 @@ Along with setting PL1 and PL2 limits via MSR and MCHBAR
 - [x] Keyboard RGB Control (Per zone control still work in process)
 - [x] Windows and Menu Key Lock (On gnome, locked button detected as Play/Pause button)
 - [x] Power-Off USB Charging (Not tested)
+- [x] Keyboard Backlight Timeout (For quick timeout less than 1 sec, use '66')
 - [ ] LCD Overdrive
+- [ ] Read CPU Temp
+- [ ] Read GPU Temp
+- [ ] Read CPU Fan Speed
+- [ ] Read GPU Fan Speed
+- [ ] Restore profile after boot
 
 ### To-Do:
 - [ ] Reformat list command
@@ -69,6 +75,10 @@ keyboard backlight c[o]lor:
 Power-off [u]sb charging:
 	- [0] - off
 	- [1] - on
+Keyboard backlight timeou[t]
+	- [0] - off
+	- [1] - on
+
 ```
 
 Example: Default Power with Auto Fan
