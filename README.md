@@ -6,7 +6,20 @@ The script also restores Keyboard RGB Profile set in Windows
 
 Along with setting PL1 and PL2 limits via MSR and MCHBAR
 
-# Requirements
+## Features
+
+- [x] Performance Mode
+- [x] Fan Mode
+- [x] Battery Charging Limit
+- [x] Keyboard RGB Control (Per zone control still work in process)
+- [x] Windows and Menu Key Lock (On gnome, locked button detected as Play/Pause button)
+- [x] Power-Off USB Charging (Not tested)
+- [ ] LCD Overdrive
+
+### To-Do:
+- [ ] Reformat list command
+
+## Requirements
 
 Kernel Commandline (/etc/default/grub)
 
@@ -14,7 +27,7 @@ Kernel Commandline (/etc/default/grub)
 ec_sys.write_support=1 msr.allow_writes=on
 ```
 
-# Usage
+## Usage
 
 To show available switches
 
@@ -25,9 +38,37 @@ sudo bash nitrosense
 Available Switches
 
 ```
-PWR:  [q]uiet [d]efault [p]erformance
-FAN:  [a]uto  [c]ustom  [m]ax
-DBG:  [r]ead from ec
+PWR: [q]uiet [d]efault [p]erformance
+FAN: [a]uto  [c]ustom  [m]ax
+DBG: [r]ead from ec
+DBG: [e]nergy data from intel_rapl
+DBG: [n]vidia-powerd restart
+[b]attery charging limit:
+	- [0] - off (100%)
+	- [1] - on (80%)
+keyboard backlight leve[l]:
+	- [0] - 0%
+	- [1] - 25%
+	- [2] - 50%
+	- [3] - 75%
+	- [4] - 100%
+keyboard backlight c[o]lor:
+	- [0] - All zone
+	- [1] - Per zone
+	- [2] - Dynamic color
+[k]eyboard backlight mode:
+	- [0] Static
+	- [1] Breathing (Dynamic color need to be set)
+	- [2] Wave
+	- [3] Neon
+	- [4] Shifting (Dynamic color need to be set)
+	- [5] Zoom (Dynamic color need to be set)
+[w]indows and menu key lock:
+	- [0] - off
+	- [1] - on
+Power-off [u]sb charging:
+	- [0] - off
+	- [1] - on
 ```
 
 Example: Default Power with Auto Fan
@@ -60,7 +101,7 @@ Example: Limit Battery Charging to 100%
 sudo bash nitrosense b 0
 ```
 
-# Notes
+### Notes
 
 The script also sets a default PL1 and PL2 limit of 95w
 
