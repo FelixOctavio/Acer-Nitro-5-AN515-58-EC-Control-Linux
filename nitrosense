@@ -48,9 +48,24 @@ function set_power_limits() {
 	done
 }
 
-ecw $((0x03)) '\x11' # Write-Enable
+# ecw $((0x03)) '\x51' # Write-Enable? + Set Battery charge to 80%
+# ecw $((0x03)) '\x11' # Write-Enable? + Set Battery charge to 100%
 
 if [[ $( ls $EC 2>/dev/null) ]]; then
+	if [[ $* =~ "b" ]]; then
+		if [ -z "$2" ]; then
+			echo "Specify Charging Limit Mode as Second arg (0 = Off, 1 = On)"
+		else
+			if [[ $2 =~ "0" ]]; then
+				echo "Battery Charging Limit (80%) - OFF"
+				BAT="\x11"
+			elif [[ $2 =~ "1" ]]; then
+				echo "Battery Charging Limit (80%) - ON"
+				BAT="\x51"
+			fi
+			ecw $((0x03)) "$BAT" # 11 51: 80% 100% limit charge
+		fi
+	fi
 	if [[ $* =~ "q" ]]; then
 		echo "PWR - Quiet"
 		ecw $((0x2c)) '\x00' # 00 01 04 PWR: quiet default perf
@@ -99,6 +114,6 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 	fi
 fi
 
-if [[ $W =~ "1"  && -f /sys/bus/wmi/drivers/acer-wmi-battery/health_mode ]]; then
-	echo 1 | tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode &>/dev/null
-fi
+#if [[ $W =~ "1"  && -f /sys/bus/wmi/drivers/acer-wmi-battery/health_mode ]]; then
+#	echo 1 | tee /sys/bus/wmi/drivers/acer-wmi-battery/health_mode &>/dev/null
+#fi
