@@ -80,6 +80,9 @@ Power-off [u]sb charging:
 Keyboard backlight timeou[t]
 	- [0] - off
 	- [1] - on
+Read Fan Speed [z]
+Read Temp [y]
+Read charging [w]
 
 ```
 
