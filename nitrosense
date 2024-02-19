@@ -35,6 +35,9 @@ if [ $# -le 0 ]; then
 	echo "Keyboard backlight timeou[t]"
 	echo "	- [0] - off"
 	echo "	- [1] - on"
+	echo "Read Fan Speed [z]"
+	echo "Read Temp [y]"
+	echo "Read charging [w]"
 	exit
 fi
 
@@ -75,8 +78,8 @@ function set_power_limits() {
 }
 
 # Sometimes, EC Cannot be written. To trigger write mode, use this
-ecw $((0x03)) '\x51' # Set Battery charge to 80% (trigger write enable)
-# ecw $((0x03)) '\x11' # Set Battery charge to 100%
+LMT=\\x$(xxd -g1 -seek $((0x03)) -l 2 $EC | cut -b 11-13)
+ecw $((0x03)) "$LMT" # Set Battery charge to 80% or 100% depends on last setting (trigger write enable)
 
 if [[ $( ls $EC 2>/dev/null) ]]; then
 	if [[ $* =~ "b" ]]; then
@@ -337,7 +340,29 @@ if [[ $( ls $EC 2>/dev/null) ]]; then
 		fi
 		ecw $((0x06)) "$KBT"
 	fi
-	# if [[ $* =~ "z" ]]; then # Testing LCD Overdrive
-	# 	ecw $((0x21)) "\x10" 
-	# fi
+	if [[ $* =~ "z" ]]; then # Get CPU and GPU Fan Speed
+		echo CPU Fan: $((0x$(xxd -g1 -seek $((0x13)) -l 2 $EC | cut -b 11-16 | awk '{print $2$1}'))) RPM
+		echo GPU Fan: $((0x$(xxd -g1 -seek $((0x15)) -l 2 $EC | cut -b 11-16 | awk '{print $2$1}'))) RPM
+	fi
+	if [[ $* =~ "y" ]]; then # Get CPU and GPU Temp
+		echo CPU Temp: $((0x$(xxd -g1 -seek $((0xB0)) -l 1 $EC | cut -b 11-13))) °C
+		echo CPU Temp: $((0x$(xxd -g1 -seek $((0xB9)) -l 1 $EC | cut -b 11-13))) °C
+		echo GPU Temp: $((0x$(xxd -g1 -seek $((0xB4)) -l 1 $EC | cut -b 11-13))) °C
+	fi
+	if [[ $* =~ "w" ]]; then # Get Battery Status
+		BAT=$(xxd -g1 -seek $((0x00)) -l 2 $EC | cut -b 11-13)
+		if [[ $BAT =~ "1" ]]; then
+			echo "AC Plugged in"
+			CHG=$(xxd -g1 -seek $((0xC1)) -l 2 $EC | cut -b 11-13)
+			if [[ $CHG =~ "00" ]]; then
+				echo "Not Charging"
+			elif [[ $CHG =~ "01" ]]; then
+				echo "Drained"
+			elif [[ $CHG =~ "02" ]]; then
+				echo "Charging"
+			fi
+		elif [[ $BAT =~ "0" ]]; then
+			echo "AC Disconnected"
+		fi
+	fi
 fi

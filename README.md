@@ -15,13 +15,13 @@ Along with setting PL1 and PL2 limits via MSR and MCHBAR
 - [x] Windows and Menu Key Lock (On gnome, locked button detected as Play/Pause button)
 - [x] Power-Off USB Charging (Not tested)
 - [x] Keyboard Backlight Timeout (For quick timeout less than 1 sec, use '66')
-- [ ] LCD Overdrive
-- [ ] Read Battery Charging Status
-- [ ] Read AC Plug Status
-- [ ] Read CPU Temp
-- [ ] Read GPU Temp
-- [ ] Read CPU Fan Speed
-- [ ] Read GPU Fan Speed
+- [x] LCD Overdrive (Not tested)
+- [x] Read Battery Charging Status
+- [x] Read AC Plug Status
+- [x] Read CPU Temp
+- [x] Read GPU Temp
+- [x] Read CPU Fan Speed
+- [x] Read GPU Fan Speed
 - [ ] Restore profile after boot
 
 ### To-Do:
