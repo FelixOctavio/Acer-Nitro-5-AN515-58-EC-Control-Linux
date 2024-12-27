@@ -1,0 +1,220 @@
+#!/bin/bash
+
+# Conf file location
+CONFIG_FILE="/etc/nitrosense.conf"
+
+# Check conf file exist or not
+if [ -f "$CONFIG_FILE" ]; then
+	# Load saved configuration
+	source $CONFIG_FILE
+
+	echo on | tee /sys/module/msr/parameters/allow_writes &>/dev/null
+
+	# Reload ec_sys with write_support
+	modprobe -r ec_sys
+	modprobe ec_sys write_support=1
+
+	EC=/sys/kernel/debug/ec/ec0/io # EC Location
+
+	function ecw() {
+		# shellcheck disable=SC2059
+		echo -n -e "$2" | dd of=$EC bs=1 seek="$1" count=1 conv=notrunc &>/dev/null
+	}
+
+	function set_power_limits() {
+		MSR=/sys/devices/virtual/powercap/intel-rapl/intel-rapl:0
+		MCH=/sys/devices/virtual/powercap/intel-rapl-mmio/intel-rapl-mmio:0
+		for N in "$MSR" "$MCH"; do
+			echo "${1}000000" | tee "$N/constraint_0_power_limit_uw" &>/dev/null
+			echo "${2}000000" | tee "$N/constraint_1_power_limit_uw" &>/dev/null
+			echo "128000000" | tee "$N/constraint_0_time_window_us" &>/dev/null
+			echo "128000000" | tee "$N/constraint_1_time_window_us" &>/dev/null
+			[[ "$N" == "$MSR" ]] && NODE=MSR || NODE=MCH
+			echo "[$NODE] PL1 [$(cat "$N/constraint_0_power_limit_uw") $(cat "$N/constraint_0_time_window_us")] PL2 [$(cat "$N/constraint_1_power_limit_uw") $(cat "$N/constraint_1_time_window_us")]"
+		done
+	}
+
+	# Sometimes, EC Cannot be written. To trigger write mode, use this
+	LMT=\\x$(xxd -g1 -seek $((0x03)) -l 2 $EC | cut -b 11-13)
+	ecw $((0x03)) "$LMT" # Set Battery charge to 80% or 100% depends on last setting (trigger write enable)
+
+	if [[ $(ls $EC 2>/dev/null) ]]; then
+		# Limit Charging to 80%
+		if $limit_charging; then
+			echo "Battery Charging Limit (80%) - ON"
+			BAT="\x51"
+		else
+			echo "Battery Charging Limit (80%) - OFF"
+			BAT="\x11"
+		fi
+		ecw $((0x03)) "$BAT" # 11 51: 80% 100% limit charge
+
+		# Keyboard Backlight Level
+		if [[ $backlight_level -eq 0 ]]; then
+			echo "Keyboard Backlight - OFF (0%)"
+			KBD="\x00"
+		elif [[ $backlight_level -eq 25 ]]; then
+			echo "Keyboard Backlight - ON (25%)"
+			KBD="\x19"
+		elif [[ $backlight_level -eq 50 ]]; then
+			echo "Keyboard Backlight - ON (50%)"
+			KBD="\x32"
+		elif [[ $backlight_level -eq 75 ]]; then
+			echo "Keyboard Backlight - ON (75%)"
+			KBD="\x4B"
+		elif [[ $backlight_level -eq 100 ]]; then
+			echo "Keyboard Backlight - ON (100%)"
+			KBD="\x64"
+		fi
+		ecw "$((0x19))" "$KBD" # 00 64: 0% - 100% Keyboard backlight (step 25%)
+
+		# Keyboard Backlight Timeout
+		KBT="\x$(printf %x "$backlight_timeout")"
+		ecw $((0x06)) "$KBT"
+
+		# Keyboard Backlight Mode
+		# 24 (0x18) default to 00, 01 - 09 speed incremental
+		# 27 (0x1b) default to 00, 01 = to left, 02 = to right
+
+		DSPD="\x$(printf %x "$dynamic_speed")"
+		if [[ $dynamic_direction == "left" ]]; then
+			DDIR="\x01"
+		elif [ $dynamic_direction == "right" ]; then
+			DDIR="\x02"
+		fi
+
+		if [[ $backlight_mode == "static" ]]; then # Static Mode
+			echo "Keyboard Backlight Mode: Static"
+			ecw $((0x17)) '\x00' # Static Mode
+
+		elif [[ $backlight_mode == "breathing" ]]; then # Breathing Mode
+			echo "Keyboard Backlight Mode: Breathing"
+			ecw $((0x17)) '\x01'                      # Breathing Mode
+		elif [[ $backlight_mode == "wave" ]]; then # Wave Mode
+			echo "Keyboard Backlight Mode: Wave"
+			ecw $((0x17)) '\x02'                      # Wave Mode
+		elif [[ $backlight_mode == "neon" ]]; then # Neon Mode
+			echo "Keyboard Backlight Mode: Neon"
+			ecw $((0x17)) '\x03'                          # Neon Mode
+		elif [[ $backlight_mode == "shifting" ]]; then # Shifting Mode
+			echo "Keyboard Backlight Mode: Shifting"
+			ecw $((0x17)) '\x04'                      # Shifting Mode
+		elif [[ $backlight_mode == "zoom" ]]; then # Zoom Mode
+			echo "Keyboard Backlight Mode: Zoom"
+			ecw $((0x17)) '\x05' # Zoom Mode
+		fi
+		ecw $((0x18)) "$DSPD" # Speed
+		ecw $((0x1b)) "$DDIR" # Direction
+
+		# Keyboard Backlight Color
+		# Zone 1
+		C1_1="$(echo "$backlight_zone1" | cut -b 1-2)"
+		C1_2="$(echo "$backlight_zone1" | cut -b 3-4)"
+		C1_3="$(echo "$backlight_zone1" | cut -b 5-6)"
+
+		# Zone 2
+		C2_1="$(echo "$backlight_zone2" | cut -b 1-2)"
+		C2_2="$(echo "$backlight_zone2" | cut -b 3-4)"
+		C2_3="$(echo "$backlight_zone2" | cut -b 5-6)"
+
+		# Zone 3
+		C3_1="$(echo "$backlight_zone3" | cut -b 1-2)"
+		C3_2="$(echo "$backlight_zone3" | cut -b 3-4)"
+		C3_3="$(echo "$backlight_zone3" | cut -b 5-6)"
+
+		# Zone 4
+		C4_1="$(echo "$backlight_zone4" | cut -b 1-2)"
+		C4_2="$(echo "$backlight_zone4" | cut -b 3-4)"
+		C4_3="$(echo "$backlight_zone4" | cut -b 5-6)"
+
+		# Zone 1
+		ecw $((0x3c)) "\x$C1_1"
+		ecw $((0x3d)) "\x$C1_2"
+		ecw $((0x3e)) "\x$C1_3"
+
+		# Zone 2
+		ecw $((0x3f)) "\x$C2_1"
+		ecw $((0x40)) "\x$C2_2"
+		ecw $((0x41)) "\x$C2_3"
+
+		# Zone 3
+		ecw $((0x42)) "\x$C3_1"
+		ecw $((0x43)) "\x$C3_2"
+		ecw $((0x44)) "\x$C3_3"
+
+		# Zone 4
+		ecw $((0x45)) "\x$C4_1"
+		ecw $((0x46)) "\x$C4_2"
+		ecw $((0x47)) "\x$C4_3"
+
+		echo "Dynamic Keyboard Backlight Color Set"
+
+		C1_1="$(echo "$dynamic_color1" | cut -b 1-2)"
+		C1_2="$(echo "$dynamic_color2" | cut -b 3-4)"
+		C1_3="$(echo "$dynamic_color3" | cut -b 5-6)"
+
+		ecw $((0x1c)) "\x$C1_1"
+		ecw $((0x1d)) "\x$C1_2"
+		ecw $((0x1e)) "\x$C1_3"
+
+		# Performance Mode
+		if [[ $perf_mode == "quiet" ]]; then
+			echo "PWR - Quiet"
+			ecw $((0x2c)) '\x00' # 00 01 04 PWR: quiet default perf
+			ecw $((0x2d)) '\x04' # 04 05 PWR
+			set_power_limits 10 15
+		elif [[ $perf_mode == "default" ]]; then
+			echo "PWR - Default"
+			ecw $((0x2c)) '\x01' # 00 01 04 PWR: quiet default perf
+			ecw $((0x2d)) '\x04' # 04 05 PWR
+			set_power_limits 45 75
+		elif [[ $perf_mode == "performance" ]]; then
+			echo "PWR - Performance"
+			ecw $((0x2c)) '\x04' # 00 01 04 PWR: quiet default perf
+			ecw $((0x2d)) '\x04' # 04 05 PWR
+			set_power_limits 75 95
+		fi
+
+		# Fan mode
+		if [[ $fan_mode == "auto" ]]; then
+			echo "FAN - Auto"
+			ecw $((0x21)) '\x10' # 10 20 30 GPUF: auto max cust
+			ecw $((0x22)) '\x04' # 04 08 0c CPUF: auto max cust
+		elif [[ $fan_mode == "custom" ]]; then
+			CPCT="\x$(printf %x "$cpu_fan_speed")"
+			GPCT="\x$(printf %x "$gpu_fan_speed")"
+			echo "CPU FAN - Custom ($cpu_fan_speed%)"
+			echo "GPU FAN - Custom ($gpu_fan_speed%)"
+			ecw $((0x21)) '\x30'  # 10 20 30 GPUF: auto max cust
+			ecw $((0x22)) '\x0c'  # 04 08 0c CPUF: auto max cust
+			ecw $((0x37)) "$CPCT" # 32 64 CPUF PCT: 0-100%
+			ecw $((0x3a)) "$GPCT" # 32 64 GPUF PCT: 0-100%
+		elif [[ $fan_mode == "max" ]]; then
+			echo "FAN - Max"
+			ecw $((0x21)) '\x20' # 10 20 30 GPUF: auto max cust
+			ecw $((0x22)) '\x08' # 04 08 0c CPUF: auto max cust
+		fi
+
+		# Win lock
+		if $win_lock; then # Windows and Menu Key Lock (On Gnome, detected as Play / Pause Media Button)
+			echo "Windows and Menu Key Lock - ON"
+			WML="\x81"
+		else
+			echo "Windows and Menu Key Lock - OFF"
+			WML="\x01"
+		fi
+		ecw $((0x30)) "$WML"
+
+		# USB Charging while power off
+		if $poweroff_usb_charging; then
+			echo "Power-off USB Charging - ON"
+			POU="\x0f"
+		else
+			echo "Power-off USB Charging - OFF"
+			POU="\x1f"
+		fi
+		ecw $((0x8)) "$POU"
+	fi
+else
+	echo "ERROR - Conf file not found!"
+fi

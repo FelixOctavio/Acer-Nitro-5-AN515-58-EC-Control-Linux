@@ -22,9 +22,10 @@ Along with setting PL1 and PL2 limits via MSR and MCHBAR
 - [x] Read GPU Temp
 - [x] Read CPU Fan Speed
 - [x] Read GPU Fan Speed
-- [ ] Restore profile after boot
+- [x] Restore profile after boot
 
 ### To-Do:
+- [ ] Create Installer Script
 - [ ] Reformat list command
 
 ## Requirements
@@ -33,6 +34,33 @@ Kernel Commandline (/etc/default/grub)
 
 ```
 ec_sys.write_support=1 msr.allow_writes=on
+```
+
+## Install
+- Copy nitrosense.conf to /etc
+- Copy nitrosense-restore and nitrosense to /bin
+- Create systemd service for profile restore after boot
+```
+tee > /etc/systemd/system/nitrosense-restore.service<<EOF
+[Unit]
+Description=Restore EC for Acer Nitro AN515-58
+
+[Service]
+Type=oneshot
+ExecStart=/bin/bash -c "nitrosense-restore"
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
+EOF
+```
+- Reload systemd service
+```
+sudo systemctl daemon-reload
+```
+- Enable systemd service
+```
+sudo systemctl enable --now nitrosense-restore
 ```
 
 ## Usage
